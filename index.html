@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QA Transformation Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Recharts for Charts -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
+    <style>
+        :root {
+            --qa-primary: #2563eb;
+            --qa-secondary: #7c3aed;
+            --qa-success: #059669;
+            --qa-warning: #d97706;
+            --qa-danger: #dc2626;
+            --qa-dark: #1e293b;
+            --qa-light: #f8fafc;
+        }
+        
+        .pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(0); }
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { BrowserRouter, Routes, Route, Link } = ReactRouterDOM;
+        const { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = Recharts;
+
+        // Navigation Component
+        function Navbar() {
+            return (
+                <nav className="bg-gray-900 text-white p-4 shadow-lg">
+                    <div className="container mx-auto flex flex-col md:flex-row justify-between items-center">
+                        <div className="flex items-center space-x-4 mb-4 md:mb-0">
+                            <h1 className="text-2xl font-bold">QA Transformation Dashboard</h1>
+                            <span className="px-3 py-1 bg-blue-600 rounded-full text-sm">
+                                v2.0
+                            </span>
+                        </div>
+                        <div className="flex flex-wrap justify-center space-x-2 md:space-x-6">
+                            <Link to="/" className="flex items-center space-x-2 px-3 py-2 rounded hover:bg-gray-800">
+                                <i className="fas fa-home"></i> <span>Home</span>
+                            </Link>
+                            <Link to="/dashboard" className="flex items-center space-x-2 px-3 py-2 rounded hover:bg-gray-800">
+                                <i className="fas fa-chart-bar"></i> <span>Dashboard</span>
+                            </Link>
+                            <Link to="/communication" className="flex items-center space-x-2 px-3 py-2 rounded hover:bg-gray-800">
+                                <i className="fas fa-comments"></i> <span>Communication</span>
+                            </Link>
+                            <Link to="/roadmap" className="flex items-center space-x-2 px-3 py-2 rounded hover:bg-gray-800">
+                                <i className="fas fa-road"></i> <span>Roadmap</span>
+                            </Link>
+                            <Link to="/governance" className="flex items-center space-x-2 px-3 py-2 rounded hover:bg-gray-800">
+                                <i className="fas fa-sitemap"></i> <span>Governance</span>
+                            </Link>
+                        </div>
+                    </div>
+                </nav>
+            );
+        }
+
+        // Metrics Dashboard Component
+        function MetricsDashboard() {
+            const [timeRange, setTimeRange] = useState('quarter');
+            
+            const defectData = [
+                { month: 'Jan', escape: 12, critical: 8 },
+                { month: 'Feb', escape: 10, critical: 6 },
+                { month: 'Mar', escape: 7, critical: 4 },
+                { month: 'Apr', escape: 5, critical: 3 },
+                { month: 'May', escape: 4, critical: 2 },
+                { month: 'Jun', escape: 3, critical: 1 },
+            ];
+            
+            const automationData = [
+                { team: 'Payments', coverage: 65, stability: 92 },
+                { team: 'Customer', coverage: 45, stability: 85 },
+                { team: 'Inventory', coverage: 72, stability: 94 },
+                { team: 'Analytics', coverage: 38, stability: 78 },
+            ];
+            
+            const locationData = [
+                { name: 'Chennai', value: 35, color: '#0088FE' },
+                { name: 'Pune', value: 25, color: '#00C49F' },
+                { name: 'Mumbai', value: 20, color: '#FFBB28' },
+                { name: 'Bangalore', value: 20, color: '#FF8042' },
+            ];
+            
+            const kpiCards = [
+                { title: 'Escape Defect Rate', value: '3.2%', target: '<2%', trend: 'down', change: '-15%' },
+                { title: 'Automation Coverage', value: '55%', target: '70%', trend: 'up', change: '+12%' },
+                { title: 'Regression Time', value: '2.1 days', target: '1 day', trend: 'down', change: '-25%' },
+                { title: 'Team Satisfaction', value: '7.8/10', target: '9/10', trend: 'up', change: '+8%' },
+            ];
+            
+            return (
+                <div className="space-y-6 p-4">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                        <h1 className="text-3xl font-bold text-gray-800 mb-4 md:mb-0">QA Transformation Dashboard</h1>
+                        <select 
+                            className="px-4 py-2 border rounded-lg bg-white shadow-sm"
+                            value={timeRange}
+                            onChange={(e) => setTimeRange(e.target.value)}
+                        >
+                            <option value="month">Last Month</option>
+                            <option value="quarter">Last Quarter</option>
+                            <option value="year">Last Year</option>
+                        </select>
+                    </div>
+                    
+                    {/* KPI Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {kpiCards.map((card, index) => (
+                            <div key={index} className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="text-sm text-gray-500">{card.title}</p>
+                                        <p className="text-2xl font-bold mt-2">{card.value}</p>
+                                        <p className="text-sm text-gray-500 mt-1">Target: {card.target}</p>
+                                    </div>
+                                    <span className={`px-3 py-1 rounded-full text-sm ${
+                                        card.trend === 'up' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                    }`}>
+                                        {card.change}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    {/* Charts Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Defect Trend Chart */}
+                        <div className="bg-white p-6 rounded-xl shadow-lg">
+                            <h3 className="text-lg font-semibold mb-4">Defect Trend Analysis</h3>
+                            <div style={{ width: '100%', height: 300 }}>
+                                <ResponsiveContainer>
+                                    <LineChart data={defectData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="month" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Legend />
+                                        <Line type="monotone" dataKey="escape" stroke="#dc2626" strokeWidth={2} />
+                                        <Line type="monotone" dataKey="critical" stroke="#d97706" strokeWidth={2} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                        
+                        {/* Team Performance */}
+                        <div className="bg-white p-6 rounded-xl shadow-lg">
+                            <h3 className="text-lg font-semibold mb-4">Team Automation Performance</h3>
+                            <div style={{ width: '100%', height: 300 }}>
+                                <ResponsiveContainer>
+                                    <BarChart data={automationData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="team" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Legend />
+                                        <Bar dataKey="coverage" fill="#2563eb" name="Coverage %" />
+                                        <Bar dataKey="stability" fill="#7c3aed" name="Stability %" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                        
+                        {/* Location Distribution */}
+                        <div className="bg-white p-6 rounded-xl shadow-lg">
+                            <h3 className="text-lg font-semibold mb-4">Team Distribution by Location</h3>
+                            <div style={{ width: '100%', height: 300 }}>
+                                <ResponsiveContainer>
+                                    <PieChart>
+                                        <Pie
+                                            data={locationData}
+                                            cx="50%"
+                                            cy="50%"
+                                            labelLine={false}
+                                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                            outerRadius={80}
+                                            fill="#8884d8"
+                                            dataKey="value"
+                                        >
+                                            {locationData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                        
+                        {/* Phase Progress */}
+                        <div className="bg-white p-6 rounded-xl shadow-lg">
+                            <h3 className="text-lg font-semibold mb-4">Transformation Phase Progress</h3>
+                            <div className="space-y-4">
+                                {[
+                                    { phase: 'Phase 1: Assessment', progress: 100, status: 'completed' },
+                                    { phase: 'Phase 2: Standardization', progress: 65, status: 'active' },
+                                    { phase: 'Phase 3: Optimization', progress: 20, status: 'upcoming' },
+                                ].map((item, index) => (
+                                    <div key={index}>
+                                        <div className="flex justify-between mb-1">
+                                            <span className="font-medium">{item.phase}</span>
+                                            <span className="text-sm text-gray-500">{item.progress}%</span>
+                                        </div>
+                                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                            <div 
+                                                className={`h-2.5 rounded-full ${
+                                                    item.status === 'completed' ? 'bg-green-500' :
+                                                    item.status === 'active' ? 'bg-blue-500' : 'bg-gray-300'
+                                                }`}
+                                                style={{ width: `${item.progress}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Communication Rhythm Component
+        function CommunicationRhythm() {
+            const [selectedView, setSelectedView] = useState('daily');
+            
+            const dailySchedule = [
+                { time: '09:00', event: 'Local Standups', location: 'All Sites', type: 'sync', duration: '30m' },
+                { time: '10:00', event: 'Cross-site Pairing', location: 'Virtual', type: 'collab', duration: '2h' },
+                { time: '11:00', event: 'Dev Team Sync', location: 'Embedded', type: 'sync', duration: '30m' },
+                { time: '14:00', event: 'Domain Knowledge Share', location: 'Virtual', type: 'learning', duration: '1h' },
+                { time: '16:30', event: 'Async Status Update', location: 'Dashboard', type: 'async', duration: '15m' },
+            ];
+            
+            const weeklyMeetings = [
+                { day: 'Mon', time: '10:00', title: 'Site Lead Sync', participants: 'Leads', duration: '1h', tool: 'Zoom' },
+                { day: 'Tue', time: '11:00', title: 'Automation Guild', participants: 'All Engineers', duration: '1.5h', tool: 'Teams' },
+                { day: 'Wed', time: '11:00', title: 'Performance Guild', participants: 'Performance Team', duration: '1.5h', tool: 'Zoom' },
+                { day: 'Thu', time: '10:00', title: 'Process Review', participants: 'QA Managers', duration: '1h', tool: 'Teams' },
+                { day: 'Fri', time: '09:00', title: 'Metrics Review', participants: 'Leadership', duration: '45m', tool: 'Zoom' },
+            ];
+            
+            const renderEventType = (type) => {
+                const colors = {
+                    sync: 'bg-blue-100 text-blue-800',
+                    async: 'bg-green-100 text-green-800',
+                    collab: 'bg-purple-100 text-purple-800',
+                    learning: 'bg-yellow-100 text-yellow-800',
+                };
+                return colors[type] || 'bg-gray-100 text-gray-800';
+            };
+            
+            return (
+                <div className="p-4 space-y-6">
+                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-2xl shadow-xl">
+                        <h1 className="text-3xl font-bold mb-2">Communication Rhythm</h1>
+                        <p className="text-lg opacity-90">Structured communication for distributed QA teams across 4 locations</p>
+                        <div className="flex flex-wrap gap-4 mt-6">
+                            <div className="bg-white/20 p-4 rounded-lg backdrop-blur-sm">
+                                <div className="text-2xl font-bold">10:00-16:00</div>
+                                <div className="text-sm">Core Overlap Hours (IST)</div>
+                            </div>
+                            <div className="bg-white/20 p-4 rounded-lg backdrop-blur-sm">
+                                <div className="text-2xl font-bold">80%</div>
+                                <div className="text-sm">Async Target</div>
+                            </div>
+                            <div className="bg-white/20 p-4 rounded-lg backdrop-blur-sm">
+                                <div className="text-2xl font-bold">4.2/5.0</div>
+                                <div className="text-sm">Meeting Score</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="flex space-x-2 overflow-x-auto scrollbar-hide mb-6">
+                        {['daily', 'weekly', 'monthly'].map((view) => (
+                            <button
+                                key={view}
+                                className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap ${
+                                    selectedView === view
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                                onClick={() => setSelectedView(view)}
+                            >
+                                {view.charAt(0).toUpperCase() + view.slice(1)} View
+                            </button>
+                        ))}
+                    </div>
+                    
+                    {selectedView === 'daily' && (
+                        <div className="bg-white rounded-xl shadow-lg p-6">
+                            <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                                <i className="fas fa-calendar"></i> Daily Communication Rhythm (IST)
+                            </h3>
+                            <div className="space-y-3">
+                                {dailySchedule.map((item, index) => (
+                                    <div key={index} className="flex flex-col md:flex-row items-start md:items-center p-4 border rounded-lg hover:bg-gray-50">
+                                        <div className="w-24 font-mono font-bold mb-2 md:mb-0">{item.time}</div>
+                                        <div className="flex-1 mb-2 md:mb-0">
+                                            <div className="font-semibold">{item.event}</div>
+                                            <div className="text-sm text-gray-500 flex items-center gap-2">
+                                                <i className="fas fa-users"></i> {item.location}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <span className={`px-3 py-1 rounded-full text-xs ${renderEventType(item.type)}`}>
+                                                {item.type.toUpperCase()}
+                                            </span>
+                                            <span className="text-gray-500 flex items-center gap-1">
+                                                <i className="fas fa-clock"></i> {item.duration}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    
+                    {selectedView === 'weekly' && (
+                        <div className="bg-white rounded-xl shadow-lg p-6">
+                            <h3 className="text-xl font-bold mb-4">Weekly Meeting Schedule</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {weeklyMeetings.map((meeting, index) => (
+                                    <div key={index} className="border rounded-lg p-4 hover:shadow-md">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <span className="font-bold text-lg">{meeting.day}</span>
+                                                <span className="ml-2 text-gray-500">{meeting.time}</span>
+                                            </div>
+                                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                                                {meeting.duration}
+                                            </span>
+                                        </div>
+                                        <h4 className="font-semibold mb-2">{meeting.title}</h4>
+                                        <div className="text-sm text-gray-600 space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <i className="fas fa-users"></i> {meeting.participants}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <i className="fas fa-video"></i> {meeting.tool}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    
+                    {selectedView === 'monthly' && (
+                        <div className="bg-white rounded-xl shadow-lg p-6">
+                            <h3 className="text-xl font-bold mb-4">Monthly Communication Cadence</h3>
+                            <div className="space-y-6">
+                                {[
+                                    { week: 'Week 1', focus: 'Strategic Alignment', activities: ['QA Town Hall', 'Metrics Review', 'Quarter Planning'] },
+                                    { week: 'Week 2', focus: 'Capability Building', activities: ['Domain Deep Dives', 'Technical Workshops', 'Cross-training'] },
+                                    { week: 'Week 3', focus: 'Innovation', activities: ['Process Hackathon', 'Tool Evaluation', 'Innovation Day'] },
+                                    { week: 'Week 4', focus: 'Governance', activities: ['Steering Committee', 'Budget Review', 'Risk Assessment'] },
+                                ].map((item, index) => (
+                                    <div key={index} className="border-l-4 border-blue-500 pl-4 py-2">
+                                        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                                            <div className="w-24 font-bold text-lg">{item.week}</div>
+                                            <div className="flex-1">
+                                                <h4 className="font-semibold text-lg">{item.focus}</h4>
+                                                <div className="flex flex-wrap gap-2 mt-2">
+                                                    {item.activities.map((activity, idx) => (
+                                                        <span key={idx} className="px-3 py-1 bg-gray-100 rounded-full text-sm">
+                                                            {activity}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Transformation Roadmap Component
+        function TransformationRoadmap() {
+            const phases = [
+                {
+                    title: 'Phase 1: Assessment & Foundation',
+                    duration: 'Months 1-3',
+                    status: 'completed',
+                    milestones: [
+                        { task: 'QA Health Assessment', completed: true },
+                        { task: 'Establish Core Framework', completed: true },
+                        { task: 'Deploy Unified Toolchain', completed: true },
+                        { task: 'Define Baseline Metrics', completed: true },
+                    ],
+                    metrics: [
+                        { name: 'Projects Documented', value: '100%', target: '100%' },
+                        { name: 'Toolchain Decided', value: 'Yes', target: 'Yes' },
+                    ]
+                },
+                {
+                    title: 'Phase 2: Standardization & Scaling',
+                    duration: 'Months 4-6',
+                    status: 'active',
+                    milestones: [
+                        { task: 'Roll Out Standard Processes', completed: true },
+                        { task: 'Launch Automation Guild', completed: true },
+                        { task: 'Implement Domain Chapters', completed: false },
+                        { task: 'Establish Governance', completed: false },
+                    ],
+                    metrics: [
+                        { name: 'Automation Coverage', value: '55%', target: '70%' },
+                        { name: 'Process Variations', value: '-30%', target: '-50%' },
+                    ]
+                },
+                {
+                    title: 'Phase 3: Optimization & Excellence',
+                    duration: 'Months 7-12',
+                    status: 'upcoming',
+                    milestones: [
+                        { task: 'Predictive Analytics', completed: false },
+                        { task: 'Advanced Shift-Left', completed: false },
+                        { task: 'Continuous Improvement', completed: false },
+                        { task: 'Quality as Differentiator', completed: false },
+                    ],
+                    metrics: [
+                        { name: 'Escape Defects', value: 'TBD', target: '-60%' },
+                        { name: 'Regression Time', value: 'TBD', target: '-50%' },
+                    ]
+                },
+            ];
+            
+            const getStatusIcon = (status) => {
+                switch (status) {
+                    case 'completed': return <i className="fas fa-check-circle text-green-500 text-xl"></i>;
+                    case 'active': return <i className="fas fa-play-circle text-blue-500 text-xl animate-pulse"></i>;
+                    default: return <i className="far fa-circle text-gray-300 text-xl"></i>;
+                }
+            };
+            
+            return (
+                <div className="p-4 space-y-8">
+                    <div className="bg-gradient-to-r from-green-600 to-teal-600 text-white p-6 rounded-2xl shadow-xl">
+                        <h1 className="text-3xl font-bold mb-2">Transformation Roadmap</h1>
+                        <p className="text-lg opacity-90">12-month journey to QA excellence across distributed teams</p>
+                    </div>
+                    
+                    <div className="relative">
+                        <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-300 hidden md:block"></div>
+                        
+                        {phases.map((phase, phaseIndex) => (
+                            <div key={phaseIndex} className="relative mb-12 ml-0 md:ml-12">
+                                <div className="absolute -left-11 top-0 hidden md:block">
+                                    {getStatusIcon(phase.status)}
+                                </div>
+                                
+                                <div className={`bg-white rounded-xl shadow-lg p-6 border-l-4 ${
+                                    phase.status === 'completed' ? 'border-green-500' :
+                                    phase.status === 'active' ? 'border-blue-500' : 'border-gray-300'
+                                }`}>
+                                    <div className="flex flex-col md:flex-row justify-between items-start mb-4">
+                                        <div>
+                                            <h3 className="text-xl font-bold">{phase.title}</h3>
+                                            <p className="text-gray-500">{phase.duration}</p>
+                                        </div>
+                                        <span className={`px-3 py-1 rounded-full text-sm mt-2 md:mt-0 ${
+                                            phase.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                            phase.status === 'active' ? 'bg-blue-100 text-blue-800' :
+                                            'bg-gray-100 text-gray-800'
+                                        }`}>
+                                            {phase.status.charAt(0).toUpperCase() + phase.status.slice(1)}
+                                        </span>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        <div>
+                                            <h4 className="font-semibold mb-3">Key Milestones</h4>
+                                            <div className="space-y-2">
+                                                {phase.milestones.map((milestone, idx) => (
+                                                    <div key={idx} className="flex items-center gap-3">
+                                                        {milestone.completed ? (
+                                                            <i className="fas fa-check-circle text-green-500"></i>
+                                                        ) : (
+                                                            <i className="far fa-circle text-gray-300"></i>
+                                                        )}
+                                                        <span className={milestone.completed ? 'text-gray-700' : 'text-gray-400'}>
+                                                            {milestone.task}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <h4 className="font-semibold mb-3">Success Metrics</h4>
+                                            <div className="space-y-3">
+                                                {phase.metrics.map((metric, idx) => (
+                                                    <div key={idx} className="bg-gray-50 p-3 rounded-lg">
+                                                        <div className="flex justify-between mb-1">
+                                                            <span className="font-medium">{metric.name}</span>
+                                                            <span className="font-bold">{metric.value}</span>
+                                                        </div>
+                                                        <div className="text-sm text-gray-500">Target: {metric.target}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="mt-6">
+                                        <div className="flex justify-between text-sm text-gray-500 mb-1">
+                                            <span>Progress</span>
+                                            <span>
+                                                {Math.round(
+                                                    (phase.milestones.filter(m => m.completed).length / 
+                                                    phase.milestones.length) * 100
+                                                )}%
+                                            </span>
+                                        </div>
+                                        <div className="w-full bg-gray-200 rounded-full h-2">
+                                            <div 
+                                                className={`h-2 rounded-full ${
+                                                    phase.status === 'completed' ? 'bg-green-500' :
+                                                    phase.status === 'active' ? 'bg-blue-500' : 'bg-gray-300'
+                                                }`}
+                                                style={{
+                                                    width: `${(phase.milestones.filter(m => m.completed).length / 
+                                                            phase.milestones.length) * 100}%`
+                                                }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // Governance Structure Component
+        function GovernanceStructure() {
+            const roles = [
+                {
+                    title: 'QA Director',
+                    responsibilities: [
+                        'Overall strategy & governance',
+                        'Budget & resource allocation',
+                        'Executive reporting',
+                        'Cross-functional alignment'
+                    ],
+                    tools: ['Jira Dashboards', 'Budget Tools', 'Reporting Suite']
+                },
+                {
+                    title: 'Site QA Leads',
+                    responsibilities: [
+                        'Local team management',
+                        'Process implementation',
+                        'Daily operations',
+                        'Escalation handling'
+                    ],
+                    tools: ['Test Management', 'Team Dashboards', 'Communication Tools']
+                },
+                {
+                    title: 'Domain Chapter Leads',
+                    responsibilities: [
+                        'Domain expertise development',
+                        'Best practice definition',
+                        'Cross-team consistency',
+                        'Quality standards'
+                    ],
+                    tools: ['Domain Wikis', 'Test Data Mgmt', 'Standards Repository']
+                },
+                {
+                    title: 'Guild Leads',
+                    responsibilities: [
+                        'Technical excellence',
+                        'Tool standardization',
+                        'Training & enablement',
+                        'Innovation driving'
+                    ],
+                    tools: ['Automation Tools', 'CI/CD Systems', 'Training Platforms']
+                }
+            ];
+            
+            const decisionMatrix = [
+                { decision: 'Tool Selection', owner: 'QA Director', consulted: 'Guild Leads', informed: 'All Teams' },
+                { decision: 'Process Changes', owner: 'Site Leads', consulted: 'Domain Leads', informed: 'All QAs' },
+                { decision: 'Release Sign-off', owner: 'Domain Lead', consulted: 'Site Lead', informed: 'Product' },
+                { decision: 'Budget Approval', owner: 'QA Director', consulted: 'Vertical Head', informed: 'Finance' },
+            ];
+            
+            return (
+                <div className="p-4 space-y-8">
+                    <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 rounded-2xl shadow-xl">
+                        <h1 className="text-3xl font-bold mb-2">Governance Structure</h1>
+                        <p className="text-lg opacity-90">Clear roles, responsibilities and decision rights for distributed teams</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {roles.map((role, index) => (
+                            <div key={index} className="bg-white rounded-xl shadow-lg p-6 border">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="p-3 bg-blue-100 rounded-lg">
+                                        <i className="fas fa-users text-blue-600 text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg">{role.title}</h3>
+                                        <p className="text-sm text-gray-500">Reporting: {index > 0 ? 'QA Director' : 'Vertical Head'}</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="mb-4">
+                                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                                        <i className="fas fa-tasks"></i> Responsibilities
+                                    </h4>
+                                    <ul className="space-y-1">
+                                        {role.responsibilities.map((resp, idx) => (
+                                            <li key={idx} className="text-sm flex items-start gap-2">
+                                                <span className="text-green-500 mt-1">•</span>
+                                                {resp}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                                
+                                <div>
+                                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                                        <i className="fas fa-tools"></i> Primary Tools
+                                    </h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {role.tools.map((tool, idx) => (
+                                            <span key={idx} className="px-3 py-1 bg-gray-100 rounded-full text-sm">
+                                                {tool}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    <div className="bg-white rounded-xl shadow-lg p-6">
+                        <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                            <i className="fas fa-project-diagram"></i> Decision Rights Matrix (RACI)
+                        </h3>
+                        
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Decision Type
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Responsible (R)
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Accountable (A)
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Consulted (C)
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Informed (I)
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {decisionMatrix.map((item, index) => (
+                                        <tr key={index} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap font-medium">
+                                                {item.decision}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                                                    {item.owner}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                                                    {item.owner === 'QA Director' ? 'Vertical Head' : 'QA Director'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
+                                                    {item.consulted}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">
+                                                    {item.informed}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                            <h4 className="font-semibold mb-2">RACI Legend</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div>
+                                    <span className="font-bold text-blue-700">R</span> - Responsible (Does the work)
+                                </div>
+                                <div>
+                                    <span className="font-bold text-green-700">A</span> - Accountable (Approves work)
+                                </div>
+                                <div>
+                                    <span className="font-bold text-yellow-700">C</span> - Consulted (Provides input)
+                                </div>
+                                <div>
+                                    <span className="font-bold text-gray-700">I</span> - Informed (Kept updated)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Home Page Component
+        function Home() {
+            return (
+                <div className="space-y-6 p-4">
+                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8 rounded-2xl shadow-xl">
+                        <h1 className="text-4xl font-bold mb-4">QA Transformation Initiative</h1>
+                        <p className="text-xl opacity-90">
+                            Rebuilding QA excellence across Chennai, Pune, Mumbai & Bangalore locations
+                        </p>
+                        <div className="flex flex-wrap gap-4 mt-6">
+                            <div className="bg-white/20 p-4 rounded-lg backdrop-blur-sm">
+                                <div className="text-2xl font-bold">3</div>
+                                <div className="text-sm">Phases</div>
+                            </div>
+                            <div className="bg-white/20 p-4 rounded-lg backdrop-blur-sm">
+                                <div className="text-2xl font-bold">4</div>
+                                <div className="text-sm">Locations</div>
+                            </div>
+                            <div className="bg-white/20 p-4 rounded-lg backdrop-blur-sm">
+                                <div className="text-2xl font-bold">12</div>
+                                <div className="text-sm">Months</div>
+                            </div>
+                            <div className="bg-white/20 p-4 rounded-lg backdrop-blur-sm">
+                                <div className="text-2xl font-bold">5.1x</div>
+                                <div className="text-sm">Projected ROI</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2">
+                            <MetricsDashboard />
+                        </div>
+                        <div className="space-y-6">
+                            <div className="bg-white p-6 rounded-xl shadow-lg">
+                                <h3 className="font-bold text-lg mb-4">Quick Actions</h3>
+                                <div className="space-y-3">
+                                    <button className="w-full bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition-colors">
+                                        <i className="fas fa-download mr-2"></i>Download Proposal PDF
+                                    </button>
+                                    <button className="w-full border border-blue-600 text-blue-600 p-3 rounded-lg hover:bg-blue-50 transition-colors">
+                                        <i className="fas fa-calendar mr-2"></i>Schedule Review
+                                    </button>
+                                    <button className="w-full border border-gray-300 text-gray-700 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <i className="fas fa-book mr-2"></i>Training Materials
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-white p-6 rounded-xl shadow-lg">
+                                <h3 className="font-bold text-lg mb-4">Upcoming Events</h3>
+                                <div className="space-y-4">
+                                    {[
+                                        { date: 'Tomorrow', event: 'Site Lead Sync', time: '10:00 AM IST' },
+                                        { date: 'Dec 15', event: 'QA Town Hall', time: '3:00 PM IST' },
+                                        { date: 'Dec 20', event: 'Steering Committee', time: '4:00 PM IST' },
+                                    ].map((event, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded">
+                                            <div>
+                                                <div className="font-medium">{event.event}</div>
+                                                <div className="text-sm text-gray-500">{event.time}</div>
+                                            </div>
+                                            <div className="text-sm font-semibold bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
+                                                {event.date}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <div className="bg-white p-6 rounded-xl shadow-lg">
+                                <h3 className="font-bold text-lg mb-4">Team Locations</h3>
+                                <div className="space-y-3">
+                                    {[
+                                        { location: 'Chennai', count: 35, color: 'bg-blue-500' },
+                                        { location: 'Pune', count: 25, color: 'bg-green-500' },
+                                        { location: 'Mumbai', count: 20, color: 'bg-yellow-500' },
+                                        { location: 'Bangalore', count: 20, color: 'bg-purple-500' },
+                                    ].map((loc, idx) => (
+                                        <div key={idx} className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-3 h-3 rounded-full ${loc.color}`}></div>
+                                                <span>{loc.location}</span>
+                                            </div>
+                                            <span className="font-bold">{loc.count} members</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Footer Component
+        function Footer() {
+            return (
+                <footer className="bg-gray-900 text-white p-6 mt-8">
+                    <div className="container mx-auto">
+                        <div className="flex flex-col md:flex-row justify-between items-center">
+                            <div className="mb-4 md:mb-0">
+                                <h3 className="text-xl font-bold">QA Transformation Dashboard</h3>
+                                <p className="text-gray-400">Version 2.0 • Last updated: December 2023</p>
+                            </div>
+                            <div className="flex space-x-6">
+                                <a href="#" className="text-gray-400 hover:text-white">
+                                    <i className="fab fa-github text-xl"></i>
+                                </a>
+                                <a href="#" className="text-gray-400 hover:text-white">
+                                    <i className="fab fa-slack text-xl"></i>
+                                </a>
+                                <a href="#" className="text-gray-400 hover:text-white">
+                                    <i className="fas fa-question-circle text-xl"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div className="border-t border-gray-800 mt-6 pt-6 text-center text-gray-400">
+                            <p>© 2023 QA Transformation Initiative. For internal use only.</p>
+                        </div>
+                    </div>
+                </footer>
+            );
+        }
+
+        // Main App Component
+        function App() {
+            return (
+                <BrowserRouter>
+                    <div className="min-h-screen flex flex-col bg-gray-50">
+                        <Navbar />
+                        <div className="flex-1">
+                            <Routes>
+                                <Route path="/" element={<Home />} />
+                                <Route path="/dashboard" element={<MetricsDashboard />} />
+                                <Route path="/communication" element={<CommunicationRhythm />} />
+                                <Route path="/roadmap" element={<TransformationRoadmap />} />
+                                <Route path="/governance" element={<GovernanceStructure />} />
+                            </Routes>
+                        </div>
+                        <Footer />
+                    </div>
+                </BrowserRouter>
+            );
+        }
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
